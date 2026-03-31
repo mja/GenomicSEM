@@ -11,8 +11,9 @@
 #' @param lsrmrthreshold Absolute threshold (default = 0.10) to define meaningful lSRMR.
 #' @param save.plots Logical. If TRUE, saves scatterplots of trait–indicator associations against loadings. Default is TRUE.
 #' @param stdout Logical. If TRUE, plots use standardized output (correlations vs. standardized loadings). If FALSE, uses covariances vs. unstandardized loadings. Default is TRUE.
+#' @params return.models Logical. If TRUE, also returns common, pathway, and follow-up models in addition to QTrait statistics data frame. Default is FALSE.
 #'
-#' @return A data frame summarizing genetic correlations between traits and the latent factor, QTrait statistics for both common and follow-up models, heterogeneity flags, lSRMR values, and identified outlier indicators.
+#' @return A data frame summarizing genetic correlations between traits and the latent factor, QTrait statistics for both common and follow-up models, heterogeneity flags, lSRMR values, and identified outlier indicators. Optionally, also returns a list of models for each external trait.
 #'
 #' @details
 #' \strong{Common Pathway Model Output} includes:
@@ -28,6 +29,13 @@
 #'   \item \code{QTrait_FUM}, \code{df_FUM}, \code{p_value_FUM}, \code{Qsignificant_FUM}
 #'   \item \code{lSRMR_FUM}, \code{lSRMR_above_threshold_FUM}, \code{heterogeneity_FUM}
 #'   \item \code{Unconstrained_paths}: Names of outlier indicator traits.
+#' }
+#' 
+#' If \code{return.models} is \code{TRUE}, output is a list with entries:
+#' 
+#' \itemize{
+#'   \item \code{summary}: Summary table described above
+#'   \item \code{models}: List of models for each trait with entries for common factor model (\code{CPM}), independent pathway model (\code{IPM}) and follow-up model (\code{FUM}).
 #' }
 #'
 #' @examples
@@ -63,7 +71,7 @@
 QTrait <- function(LDSCoutput,indicators,traits,
                    mresid=.25,mresidthreshold=.10,
                    lsrmr=.25,lsrmrthreshold = .10,
-                   save.plots=TRUE,stdout = TRUE){
+                   save.plots=TRUE,stdout = TRUE,return.models=FALSE){
   suppressWarnings({
   #Load required packages  
   list.of.packages <- c("data.table","GenomicSEM","ggplot2","ggrepel","corrplot","dplyr")
@@ -159,6 +167,7 @@ QTrait <- function(LDSCoutput,indicators,traits,
   rGF1Trait <- list()
   SErGF1Trait <- list()
   pvalrGF1Trait <- list()
+  fits_list <- list()
 
   if(save.plots & !file.exists("Plots")){
     dir.create("Plots")
@@ -178,7 +187,10 @@ QTrait <- function(LDSCoutput,indicators,traits,
                          CFIcalc = TRUE, std.lv = F, imp_cov = T)
     sink()
     CPchi <- CPM_fit$modelfit$chisq #Store chisq of CPM
-    CPdf <-  CPM_fit$modelfit$df #Store df of CPM   
+    CPdf <-  CPM_fit$modelfit$df #Store df of CPM
+    # list to store fitted models
+    fits = list(CPM = NULL, IPM = NULL, FUM = NULL)
+    fits[["CPM"]] <- CPM_fit
    
    # Extract the residual variances (lhs == rhs and op == "~~")
    residuals <- CPM_fit$results[CPM_fit$results$op == "~~" & CPM_fit$results$lhs == CPM_fit$results$rhs, c("lhs", "Unstand_Est")]
@@ -229,6 +241,7 @@ QTrait <- function(LDSCoutput,indicators,traits,
     sink() 
     IPchi <- IPM_fit$modelfit$chisq
     IPdf <- IPM_fit$modelfit$df
+    fits[["IPM"]] = IPM_fit
     # Check if the chisq from the IPM is NA and assign 0 if it is
     if (is.na(IPchi)) {
       IPchi <- 0
@@ -309,6 +322,7 @@ QTrait <- function(LDSCoutput,indicators,traits,
         sink()
         FUMchi <- FUM_fit$modelfit$chisq #Store chisq of follow-up model
         FUMdf <-  FUM_fit$modelfit$df #Store df of follow-up model
+        fits[["FUM"]] <- FUM_fit
         cat('\n',"----------------------------","\n") 
         # Check if the chisq from the IPM is NA and assign 0 if it is
         if (is.na(FUMchi)) {
@@ -392,6 +406,7 @@ QTrait <- function(LDSCoutput,indicators,traits,
           sink()
           FUMchi <- FUM_fit$modelfit$chisq #Store chisq of follow-up model
           FUMdf <-  FUM_fit$modelfit$df #Store df of follow-up model
+          fits[["FUM"]] <- FUM_fit
           cat('\n',"----------------------------","\n") 
                                
           if (FUMdf==0){
@@ -457,6 +472,8 @@ QTrait <- function(LDSCoutput,indicators,traits,
                    BetaF1Trait_significat,
                    nested_chi_FUM,nested_df_FUM,pchisq(nested_chi_FUM,nested_df_FUM,lower.tail = F),
                    Qsignificant_FUM,lsrmr_FUM,lSRMR_above_threshold_FUM,pct_reduction_lSRMR_FUM,SigHet_FUM,Unconstrained_paths)
+
+    fits_list[i] <- fits
     
     n_outliers <- length(unlist(strsplit(outlier_fum, split = ",")))
     # Print warning if outliers exceed 50% of indicators
@@ -731,7 +748,11 @@ plot_list[[i]] <- my_graph
   Q_mat <- Q_mat %>%
   mutate(across(-all_of(non_numeric_columns), ~ as.numeric(.)))
   Q_mat <<- Q_mat
-  return(Q_mat)
+  if(return.models) {
+    return(list(summary = Q_mat, models = fits_list))
+  } else {
+    return(Q_mat)
+  }
   cat('\n',"Bonferonni p-value threshold based on the number of tests:",bfpvalt,"\n")
   cat('\n',"----------------------------","\n") 
   })

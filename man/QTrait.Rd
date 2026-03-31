@@ -13,7 +13,8 @@ QTrait(
   lsrmr = 0.25,
   lsrmrthreshold = 0.1,
   save.plots = TRUE,
-  stdout = TRUE
+  stdout = TRUE,
+  return.models = FALSE
 )
 }
 \arguments{
@@ -36,7 +37,7 @@ QTrait(
 \item{stdout}{Logical. If TRUE, plots use standardized output (correlations vs. standardized loadings). If FALSE, uses covariances vs. unstandardized loadings. Default is TRUE.}
 }
 \value{
-A data frame summarizing genetic correlations between traits and the latent factor, QTrait statistics for both common and follow-up models, heterogeneity flags, lSRMR values, and identified outlier indicators.
+A data frame summarizing genetic correlations between traits and the latent factor, QTrait statistics for both common and follow-up models, heterogeneity flags, lSRMR values, and identified outlier indicators. Optionally, also returns a list of models for each external trait.
 }
 \description{
 \code{QTrait} tests whether the genetic association between a latent factor (defined by a set of indicator traits) and an external trait can be fully explained by the common factor, or whether specific indicator traits show heterogeneity in this relationship.
@@ -55,6 +56,13 @@ A data frame summarizing genetic correlations between traits and the latent fact
   \item \code{QTrait_FUM}, \code{df_FUM}, \code{p_value_FUM}, \code{Qsignificant_FUM}
   \item \code{lSRMR_FUM}, \code{lSRMR_above_threshold_FUM}, \code{heterogeneity_FUM}
   \item \code{Unconstrained_paths}: Names of outlier indicator traits.
+}
+
+If \code{return.models} is \code{TRUE}, output is a list with entries:
+
+\itemize{
+  \item \code{summary}: Summary table described above
+  \item \code{models}: List of models for each trait with entries for common factor model (\code{CPM}), independent pathway model (\code{IPM}) and follow-up model (\code{FUM}).
 }
 }
 \examples{
