@@ -241,7 +241,7 @@ QTrait <- function(LDSCoutput,indicators,traits,
     sink() 
     IPchi <- IPM_fit$modelfit$chisq
     IPdf <- IPM_fit$modelfit$df
-    fits[["IPM"]] = IPM_fit
+    fits[["IPM"]] <- IPM_fit
     # Check if the chisq from the IPM is NA and assign 0 if it is
     if (is.na(IPchi)) {
       IPchi <- 0
@@ -473,7 +473,7 @@ QTrait <- function(LDSCoutput,indicators,traits,
                    nested_chi_FUM,nested_df_FUM,pchisq(nested_chi_FUM,nested_df_FUM,lower.tail = F),
                    Qsignificant_FUM,lsrmr_FUM,lSRMR_above_threshold_FUM,pct_reduction_lSRMR_FUM,SigHet_FUM,Unconstrained_paths)
 
-    fits_list[i] <- fits
+    fits_list[[i]] <- fits
     
     n_outliers <- length(unlist(strsplit(outlier_fum, split = ",")))
     # Print warning if outliers exceed 50% of indicators
